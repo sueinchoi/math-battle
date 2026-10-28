@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b4fe0">
+<style>[hidden]{display:none!important}</style>
+<title>계산 대결</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one centered app column (max 560px); each screen replaces the last in place.
+   On the play screen the stopwatch and the problem dominate and the keypad sits at the thumb. */
+:root{
+  --bg:#eef1f7; --surface:#ffffff; --surface-2:#e3e8f3; --fg:#121a33; --muted:#5d6785; --line:#cdd4e4;
+  --accent:#2b4fe0; --accent-fg:#ffffff; --accent-soft:#dfe6ff;
+  --ok:#178a4e; --ok-soft:#d9f3e4; --bad:#cf3127; --bad-soft:#fbe1de;
+  --gold:#c99a00; --silver:#7f8aa3; --bronze:#a8652f;
+  --display:'Do Hyeon','IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1322; --surface:#171d31; --surface-2:#212a45; --fg:#eef1f9; --muted:#98a2bf; --line:#2e3853;
+    --accent:#6f8cff; --accent-fg:#0e1322; --accent-soft:#243264;
+    --ok:#3fc77a; --ok-soft:#163a2a; --bad:#ff6b61; --bad-soft:#4a1f1f;
+    --gold:#f0c23b; --silver:#aab3c7; --bronze:#d08a52;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1322; --surface:#171d31; --surface-2:#212a45; --fg:#eef1f9; --muted:#98a2bf; --line:#2e3853;
+  --accent:#6f8cff; --accent-fg:#0e1322; --accent-soft:#243264;
+  --ok:#3fc77a; --ok-soft:#163a2a; --bad:#ff6b61; --bad-soft:#4a1f1f;
+  --gold:#f0c23b; --silver:#aab3c7; --bronze:#d08a52;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--fg); font-family:var(--body); font-size:16px; line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px 28px; -webkit-font-smoothing:antialiased;
+}
+.app{max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:16px; min-height:100%}
+h1,h2,h3{margin:0; font-family:var(--display); font-weight:400; text-wrap:balance; line-height:1.15}
+h1{font-size:2rem; letter-spacing:.01em}
+h2{font-size:1.25rem}
+h3{font-size:1.05rem}
+p{margin:0}
+button{font:inherit; color:inherit; cursor:pointer; border:0; background:none; padding:0}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.brand{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; padding-block:4px}
+.brand p{color:var(--muted); font-size:.95rem}
+.eyebrow{font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:500}
+.hint{color:var(--muted); font-size:.9rem}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:12px}
+.card.center{align-items:center; text-align:center; padding-block:28px}
+.row-between{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip{
+  border:1.5px solid var(--line); border-radius:999px; padding:7px 13px; background:var(--surface); font-size:.95rem; font-weight:500;
+  display:inline-flex; flex-direction:column; align-items:center; gap:0; line-height:1.25; transition:background .15s,border-color .15s;
+}
+.chip small{font-family:var(--mono); font-size:.72rem; color:var(--muted); font-weight:500}
+.chip.on{background:var(--accent-soft); border-color:var(--accent); color:var(--fg)}
+.chip.on small{color:var(--accent)}
+.chip:hover{border-color:var(--accent)}
+.chip.ghost{background:transparent; font-size:.85rem; padding:5px 11px}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:12px; padding:12px 18px; font-weight:700; font-size:1rem;
+  background:var(--surface-2); color:var(--fg); transition:transform .08s, filter .15s; text-decoration:none;
+}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--accent); color:var(--accent-fg)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.big{font-size:1.2rem; padding:16px 22px; width:100%; font-family:var(--display); letter-spacing:.02em}
+.btn.ghost{background:transparent; color:var(--muted); font-weight:500}
+.btn.ghost:hover{color:var(--fg)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn.small{font-size:.9rem; padding:8px 12px}
+.sticky-bottom{position:sticky; bottom:0; padding-block:10px 0; background:linear-gradient(to top,var(--bg) 60%,transparent)}
+.error{color:var(--bad); font-size:.9rem; font-weight:500}
+
+/* players */
+.player-row{display:flex; align-items:center; gap:10px}
+.pnum{width:28px; height:28px; border-radius:50%; background:var(--surface-2); display:grid; place-items:center; font-family:var(--mono); font-size:.85rem; font-weight:700; flex:none}
+.name{flex:1; min-width:0; font:inherit; font-weight:500; padding:9px 12px; border:1.5px solid var(--line); border-radius:10px; background:var(--bg); color:var(--fg)}
+.name:focus{border-color:var(--accent); outline:none}
+.icon{color:var(--muted); font-size:.85rem; padding:6px 8px; border-radius:8px}
+.icon:hover:not(:disabled){color:var(--bad); background:var(--bad-soft)}
+.icon:disabled{opacity:.35; cursor:not-allowed}
+
+/* operation cards */
+.op{border:1.5px solid var(--line); border-radius:12px; overflow:hidden; background:var(--bg)}
+.op.on{border-color:var(--accent)}
+.op-head{display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; user-select:none}
+.op-sym{font-family:var(--display); font-size:1.4rem; width:34px; height:34px; border-radius:9px; display:grid; place-items:center; background:var(--surface-2); color:var(--muted); flex:none}
+.op.on .op-sym{background:var(--accent); color:var(--accent-fg)}
+.op-name{font-weight:700; flex:1}
+.switch{appearance:none; width:44px; height:26px; border-radius:999px; background:var(--line); position:relative; cursor:pointer; margin:0; transition:background .15s; flex:none}
+.switch::after{content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:var(--surface); transition:left .15s; box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.switch:checked{background:var(--accent)}
+.switch:checked::after{left:21px}
+.op-body{display:flex; flex-direction:column; gap:10px; padding:4px 12px 12px}
+.op:not(.on) .op-body{display:none}
+.opts{display:flex; flex-wrap:wrap; gap:14px; font-size:.9rem; color:var(--muted)}
+.opts label{display:inline-flex; align-items:center; gap:6px; cursor:pointer}
+.opts input{accent-color:var(--accent); width:16px; height:16px; margin:0}
+
+/* handoff */
+.huge{font-size:clamp(2.4rem,10vw,3.4rem); line-height:1.1}
+.done-list{display:flex; flex-direction:column; gap:8px}
+.done-row{display:flex; justify-content:space-between; gap:10px; align-items:baseline; padding:6px 0; border-bottom:1px dashed var(--line)}
+.done-row:last-child{border-bottom:0}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:700}
+.countdown{position:fixed; inset:0; display:grid; place-items:center; background:color-mix(in srgb,var(--bg) 88%,transparent); z-index:20}
+.countdown span{font-family:var(--display); font-size:clamp(7rem,30vw,12rem); color:var(--accent); line-height:1}
+.countdown span.pop{animation:pop .5s ease-out}
+@keyframes pop{from{transform:scale(1.4); opacity:.3}to{transform:scale(1); opacity:1}}
+
+/* play */
+.playbar{display:flex; align-items:flex-end; justify-content:space-between; gap:12px}
+.playbar .who{font-weight:700; font-size:1.05rem}
+.progress-text{color:var(--muted); font-size:.9rem}
+.progress-text b{color:var(--fg); font-family:var(--mono); font-size:1.1rem}
+.timer{font-family:var(--mono); font-size:clamp(1.9rem,8vw,2.5rem); font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.01em; line-height:1}
+.bar{height:6px; border-radius:999px; background:var(--surface-2); overflow:hidden}
+.bar i{display:block; height:100%; background:var(--accent); width:0; transition:width .25s ease}
+.problem-card{
+  background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius); padding:22px 16px 18px; text-align:center;
+  display:flex; flex-direction:column; gap:6px; position:relative; transition:border-color .15s, background .15s;
+}
+.problem-card.bad{animation:shake .4s; border-color:var(--bad); background:var(--bad-soft)}
+.problem-card.ok{border-color:var(--ok); background:var(--ok-soft)}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-6px)}40%,60%{transform:translateX(6px)}}
+.problem{font-family:var(--display); font-size:clamp(2.8rem,13vw,4.2rem); line-height:1.1; font-variant-numeric:tabular-nums; letter-spacing:.02em; overflow-wrap:anywhere}
+.answer{display:flex; justify-content:center; align-items:center; gap:10px; font-family:var(--mono); font-size:clamp(2rem,9vw,2.8rem); font-weight:700; min-height:1.3em; font-variant-numeric:tabular-nums}
+.answer .eq{color:var(--muted)}
+.answer .val:empty::before{content:"?"; color:var(--line)}
+.caret{width:3px; height:1em; background:var(--accent); border-radius:2px; animation:blink 1s steps(2) infinite}
+@keyframes blink{to{visibility:hidden}}
+.feedback{position:absolute; top:10px; right:12px; font-weight:700; font-size:.95rem; opacity:0; transition:opacity .15s}
+.feedback.show{opacity:1}
+.feedback.bad{color:var(--bad)}
+.feedback.ok{color:var(--ok)}
+.numpad{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+.key{
+  height:62px; border-radius:12px; background:var(--surface); border:1.5px solid var(--line); font-family:var(--display); font-size:1.7rem;
+  display:grid; place-items:center; user-select:none; -webkit-user-select:none; touch-action:manipulation; transition:background .08s;
+}
+.key:active{background:var(--accent-soft)}
+.key.fn{font-family:var(--body); font-size:1.05rem; font-weight:700; color:var(--muted); background:var(--surface-2)}
+
+/* results */
+.winner{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 16px; border-radius:12px; background:var(--accent-soft)}
+.winner .tag{font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); font-weight:700}
+.winner b{font-family:var(--display); font-weight:400; font-size:1.7rem; margin-left:8px}
+.winner .mono{font-size:1.4rem}
+.ranking{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px}
+.rank{display:grid; grid-template-columns:36px 1fr auto; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line)}
+.rank:last-child{border-bottom:0}
+.medal{width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-family:var(--display); font-size:1.2rem; background:var(--surface-2); color:var(--muted)}
+.rank.r1 .medal{background:var(--gold); color:#1a1200}
+.rank.r2 .medal{background:var(--silver); color:#101418}
+.rank.r3 .medal{background:var(--bronze); color:#fff}
+.who{min-width:0; display:flex; flex-direction:column; gap:4px}
+.who b{font-size:1.05rem}
+.who .sub{color:var(--muted); font-size:.85rem}
+.rbar{height:5px; border-radius:999px; background:var(--surface-2); overflow:hidden; max-width:260px}
+.rbar i{display:block; height:100%; background:var(--muted); border-radius:999px}
+.rank.r1 .rbar i{background:var(--accent)}
+.rank .time{font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:700; font-size:1.15rem}
+.actions{display:flex; gap:10px; flex-wrap:wrap}
+.actions .btn{flex:1 1 180px}
+details.card{gap:0}
+details.card summary{cursor:pointer; font-weight:700; list-style:none; display:flex; justify-content:space-between}
+details.card summary::after{content:"펼치기"; color:var(--muted); font-weight:500; font-size:.9rem}
+details[open].card summary::after{content:"접기"}
+.qlist{margin:12px 0 0; padding:0; list-style:none; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px 14px; font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:.95rem}
+.qlist li{display:flex; gap:8px}
+.qlist .n{color:var(--muted); font-size:.8rem; width:2ch; text-align:right}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important; transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app"></div>
+
+<script>
+(function(){
+  'use strict';
+  const STORE='math-battle.settings.v1';
+  const OPS={
+    add:{name:'덧셈',sym:'+',combos:['11','21','22','31','32','33']},
+    sub:{name:'뺄셈',sym:'−',combos:['11','21','22','31','32','33']},
+    mul:{name:'곱셈',sym:'×',combos:['11','21','22','31']},
+    div:{name:'나눗셈',sym:'÷',combos:['21','31','32','42']}
+  };
+  const PLACE={1:'일의 자리',2:'십의 자리',3:'백의 자리',4:'천의 자리'};
+  const SAMPLE={1:'7',2:'34',3:'256',4:'1482'};
+  const COUNTS=[5,10,15,20,30];
+  const PENALTIES=[0,2,3,5,10];
+  const PRESETS={
+    '입문':{add:['11'],sub:[],mul:[],div:[]},
+    '초급':{add:['11','21'],sub:['11','21'],mul:[],div:[]},
+    '중급':{add:['22'],sub:['22'],mul:['11'],div:['21']},
+    '고급':{add:['32','33'],sub:['32','33'],mul:['21','22'],div:['31','32']}
+  };
+  function defaultSettings(){
+    return {players:['플레이어 1','플레이어 2'],count:10,penalty:3,
+      ops:{add:{on:true,combos:['11','21'],noCarry:false},
+           sub:{on:true,combos:['11','21'],noBorrow:false,allowNeg:false},
+           mul:{on:false,combos:['11']},
+           div:{on:false,combos:['21']}}};
+  }
+  function loadSettings(){
+    try{
+      const s=JSON.parse(localStorage.getItem(STORE));
+      if(s&&s.ops&&Array.isArray(s.players)&&s.players.length>=2){
+        const d=defaultSettings();
+        for(const k in d.ops){ s.ops[k]=Object.assign(d.ops[k],s.ops[k]||{}); }
+        return Object.assign(d,s);
+      }
+    }catch(e){}
+    return defaultSettings();
+  }
+  function saveSettings(){ try{ localStorage.setItem(STORE,JSON.stringify(state.settings)); }catch(e){} }
+
+  let state={screen:'setup',settings:loadSettings(),game:null,setupError:''};
+
+  /* ---------- problem generation ---------- */
+  function rint(lo,hi){ return lo+Math.floor(Math.random()*(hi-lo+1)); }
+  function range(d){ return d===1?[1,9]:[Math.pow(10,d-1),Math.pow(10,d)-1]; }
+  function digitsOf(n){ return String(Math.abs(n)).split('').reverse().map(Number); }
+  function noCarry(a,b){ const A=digitsOf(a),B=digitsOf(b); for(let i=0;i<Math.max(A.length,B.length);i++){ if((A[i]||0)+(B[i]||0)>9) return false; } return true; }
+  function noBorrow(a,b){ const A=digitsOf(a),B=digitsOf(b); for(let i=0;i<B.length;i++){ if((A[i]||0)<(B[i]||0)) return false; } return true; }
+  function mk(a,sym,b,ans){ return {a:a,b:b,sym:sym,answer:ans,text:a+' '+sym+' '+b}; }
+  function genOne(op,combo,o){
+    const da=+combo[0],db=+combo[1];
+    const ar=range(da),br=range(db);
+    for(let t=0;t<400;t++){
+      let a,b;
+      if(op==='add'){
+        a=rint(ar[0],ar[1]); b=rint(br[0],br[1]);
+        if(o.noCarry&&!noCarry(a,b)) continue;
+        if(da!==db&&Math.random()<0.5){ const x=a; a=b; b=x; }
+        return mk(a,'+',b,a+b);
+      }
+      if(op==='sub'){
+        a=rint(ar[0],ar[1]); b=rint(br[0],br[1]);
+        if(o.allowNeg){ if(Math.random()<0.5){ const x=a; a=b; b=x; } }
+        else if(a<b){ const x=a; a=b; b=x; }
+        const big=Math.max(a,b),small=Math.min(a,b);
+        if(o.noBorrow&&!noBorrow(big,small)) continue;
+        return mk(a,'−',b,a-b);
+      }
+      if(op==='mul'){
+        a=rint(da===1?2:ar[0],ar[1]); b=rint(db===1?2:br[0],br[1]);
+        if(da!==db&&Math.random()<0.5){ const x=a; a=b; b=x; }
+        return mk(a,'×',b,a*b);
+      }
+      if(op==='div'){
+        b=rint(db===1?2:br[0],br[1]);
+        const qlo=Math.max(2,Math.ceil(ar[0]/b)),qhi=Math.floor(ar[1]/b);
+        if(qlo>qhi) continue;
+        const q=rint(qlo,qhi); a=b*q;
+        return mk(a,'÷',b,q);
+      }
+    }
+    return mk(3,'+',4,7);
+  }
+  function buildPool(s){
+    const pool=[];
+    for(const op in OPS){ const c=s.ops[op]; if(c.on) c.combos.forEach(cb=>pool.push([op,cb])); }
+    return pool;
+  }
+  function genProblems(s){
+    const pool=buildPool(s); const out=[];
+    for(let i=0;i<s.count;i++){ const p=pool[rint(0,pool.length-1)]; out.push(genOne(p[0],p[1],s.ops[p[0]])); }
+    return out;
+  }
+
+  /* ---------- helpers ---------- */
+  function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function fmt(ms){ ms=Math.max(0,Math.round(ms)); const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60,cs=Math.floor(ms/10)%100; return m+':'+pad(s)+'.'+pad(cs); }
+  function playerName(i){ const n=(state.settings.players[i]||'').trim(); return n||('플레이어 '+(i+1)); }
+  function comboLabel(op,cb){ return PLACE[+cb[0]]+' '+OPS[op].sym+' '+PLACE[+cb[1]]; }
+  function comboSample(op,cb){ return SAMPLE[+cb[0]]+' '+OPS[op].sym+' '+SAMPLE[+cb[1]]; }
+
+  /* ---------- screens ---------- */
+  function brandHTML(sub){
+    return '<header class="brand"><h1>계산 대결</h1><p>'+(sub||'같은 문제, 다른 시간. 가장 빨리 푸는 사람이 이깁니다.')+'</p></header>';
+  }
+  function setupHTML(){
+    const s=state.settings; const n=s.players.length;
+    const players=s.players.map((p,i)=>
+      '<div class="player-row"><span class="pnum">'+(i+1)+'</span>'+
+      '<input id="pname-'+i+'" class="name" data-i="'+i+'" value="'+esc(p)+'" maxlength="12" placeholder="이름" autocomplete="off">'+
+      '<button class="icon" data-action="remove-player" data-i="'+i+'" '+(n<=2?'disabled':'')+' aria-label="플레이어 삭제">삭제</button></div>').join('');
+    const ops=Object.keys(OPS).map(op=>{
+      const c=s.ops[op]; const def=OPS[op];
+      const chips=def.combos.map(cb=>'<button class="chip '+(c.combos.includes(cb)?'on':'')+'" data-action="combo" data-op="'+op+'" data-combo="'+cb+'">'+
+        (op==='mul'&&cb==='11'?'구구단':comboLabel(op,cb))+'<small>'+comboSample(op,cb)+'</small></button>').join('');
+      let opts='';
+      if(op==='add') opts='<label><input type="checkbox" data-op="add" data-opt="noCarry" '+(c.noCarry?'checked':'')+'> 받아올림 없는 문제만</label>';
+      if(op==='sub') opts='<label><input type="checkbox" data-op="sub" data-opt="noBorrow" '+(c.noBorrow?'checked':'')+'> 받아내림 없는 문제만</label>'+
+                          '<label><input type="checkbox" data-op="sub" data-opt="allowNeg" '+(c.allowNeg?'checked':'')+'> 답이 음수인 문제도</label>';
+      return '<div class="op '+(c.on?'on':'')+'"><label class="op-head"><span class="op-sym">'+def.sym+'</span><span class="op-name">'+def.name+'</span>'+
+        '<input type="checkbox" class="switch" id="sw-'+op+'" data-op="'+op+'" '+(c.on?'checked':'')+'></label>'+
+        '<div class="op-body"><div class="chips">'+chips+'</div>'+(opts?'<div class="opts">'+opts+'</div>':'')+'</div></div>';
+    }).join('');
+    const pool=buildPool(s);
+    return brandHTML()+
+      '<section class="card"><div class="row-between"><h2>플레이어</h2><span class="hint">'+n+'명 · 한 기기에서 차례대로</span></div>'+players+
+      (n<6?'<button class="btn small" data-action="add-player">+ 플레이어 추가</button>':'')+'</section>'+
+      '<section class="card"><div class="row-between"><h2>문제 수</h2><span class="hint">모두 같은 문제를 풉니다</span></div><div class="chips">'+
+      COUNTS.map(c=>'<button class="chip '+(s.count===c?'on':'')+'" data-action="count" data-v="'+c+'">'+c+'문제</button>').join('')+'</div></section>'+
+      '<section class="card"><div class="row-between"><h2>난이도</h2><div class="chips">'+
+      Object.keys(PRESETS).map(k=>'<button class="chip ghost" data-action="preset" data-v="'+k+'">'+k+'</button>').join('')+'</div></div>'+
+      '<p class="hint">연산을 켜고, 자릿수 조합을 고르세요. 고른 조합 중에서 무작위로 문제가 나옵니다.</p>'+ops+'</section>'+
+      '<section class="card"><div class="row-between"><h2>오답 패널티</h2><span class="hint">틀리면 시간이 더해지고 같은 문제를 다시 풉니다</span></div><div class="chips">'+
+      PENALTIES.map(p=>'<button class="chip '+(s.penalty===p?'on':'')+'" data-action="penalty" data-v="'+p+'">'+(p===0?'없음':'+'+p+'초')+'</button>').join('')+'</div></section>'+
+      '<div class="sticky-bottom">'+(state.setupError?'<p class="error" style="margin-bottom:8px">'+state.setupError+'</p>':'')+
+      '<button class="btn primary big" data-action="start" '+(pool.length?'':'disabled')+'>'+(pool.length?'대결 시작':'연산과 자릿수를 하나 이상 고르세요')+'</button></div>';
+  }
+  function handoffHTML(){
+    const g=state.game; const i=g.current; const total=state.settings.players.length;
+    const done=g.results.length?'<section class="card"><h3>지금까지</h3><div class="done-list">'+
+      g.results.map(r=>'<div class="done-row"><span>'+esc(r.name)+' <span class="hint">오답 '+r.wrong+'회</span></span><span class="mono">'+fmt(r.total)+'</span></div>').join('')+
+      '</div></section>':'';
+    return brandHTML(state.settings.count+'문제 · '+total+'명')+
+      '<section class="card center"><p class="eyebrow">'+(i+1)+'번째 차례 / '+total+'명</p><h2 class="huge">'+esc(playerName(i))+'</h2>'+
+      '<p class="hint">시작을 누르면 3초 뒤 첫 문제가 나오고 스톱워치가 돕니다.<br>답을 입력하고 확인(Enter)을 누르세요.</p>'+
+      '<button class="btn primary big" data-action="go">시작</button></section>'+done+
+      '<button class="btn ghost small" data-action="abort-confirm">대결 그만두기</button>'+
+      '<div class="countdown" id="countdown" hidden><span>3</span></div>';
+  }
+  function playHTML(){
+    const g=state.game;
+    const keys=['7','8','9','4','5','6','1','2','3','neg','0','del'];
+    return '<div class="playbar"><div><div class="who">'+esc(playerName(g.current))+'</div><div class="progress-text"><b id="qnum">'+(g.qIndex+1)+'</b> / '+state.settings.count+'</div></div>'+
+      '<div class="timer" id="timer">0:00.00</div></div><div class="bar"><i id="pbar"></i></div>'+
+      '<section class="problem-card" id="pcard"><div class="problem" id="problem"></div><div class="answer"><span class="eq">=</span><span class="val" id="val"></span><span class="caret"></span></div><div class="feedback" id="fb"></div></section>'+
+      '<div class="numpad">'+keys.map(k=>'<button class="key '+(k==='neg'||k==='del'?'fn':'')+'" data-action="key" data-k="'+k+'">'+(k==='neg'?'±':k==='del'?'지우기':k)+'</button>').join('')+'</div>'+
+      '<button class="btn primary big" data-action="submit">확인</button>'+
+      '<button class="btn ghost small '+(g.abortArmed?'danger':'')+'" data-action="abort-confirm">'+(g.abortArmed?'정말 그만둘까요? 다시 누르면 설정으로 돌아갑니다':'대결 그만두기')+'</button>';
+  }
+  function resultsHTML(){
+    const g=state.game; const ranked=g.results.slice().sort((a,b)=>a.total-b.total);
+    const max=ranked[ranked.length-1].total||1; const win=ranked[0];
+    const rows=ranked.map((r,i)=>{
+      const pct=Math.max(8,Math.round(r.total/max*100));
+      const sub='순수 '+fmt(r.raw)+' · 오답 '+r.wrong+'회'+(r.penaltyMs?' · 패널티 +'+(r.penaltyMs/1000)+'초':'');
+      return '<li class="rank r'+(i+1)+'"><span class="medal">'+(i+1)+'</span><div class="who"><b>'+esc(r.name)+'</b><span class="sub">'+sub+'</span><div class="rbar"><i style="width:'+pct+'%"></i></div></div><span class="time">'+fmt(r.total)+'</span></li>';
+    }).join('');
+    const qs=g.problems.map((p,i)=>'<li><span class="n">'+(i+1)+'</span><span>'+p.text+' = '+p.answer+'</span></li>').join('');
+    return brandHTML('결과 · '+state.settings.count+'문제')+
+      '<section class="card"><div class="winner"><span><span class="tag">우승</span><b>'+esc(win.name)+'</b></span><span class="mono">'+fmt(win.total)+'</span></div>'+
+      '<ol class="ranking">'+rows+'</ol></section>'+
+      '<div class="actions"><button class="btn primary" data-action="rematch">같은 설정으로 다시</button><button class="btn" data-action="setup">설정 바꾸기</button></div>'+
+      '<details class="card"><summary>이번 대결 문제와 정답</summary><ol class="qlist">'+qs+'</ol></details>';
+  }
+
+  const app=document.getElementById('app');
+  function render(){
+    if(state.screen==='setup') app.innerHTML=setupHTML();
+    else if(state.screen==='handoff') app.innerHTML=handoffHTML();
+    else if(state.screen==='play'){ app.innerHTML=playHTML(); updateProblem(); updateInput(); }
+    else if(state.screen==='results') app.innerHTML=resultsHTML();
+    if(state.screen==='play') startTick(); else stopTick();
+    window.scrollTo(0,0);
+  }
+
+  /* ---------- game flow ---------- */
+  function startGame(){
+    const s=state.settings;
+    if(!buildPool(s).length){ state.setupError='연산을 하나 이상 켜고 자릿수 조합을 고르세요.'; render(); return; }
+    state.setupError='';
+    saveSettings();
+    state.game={problems:genProblems(s),results:[],current:0,qIndex:0,wrong:0,penaltyMs:0,turnStart:null,input:'',abortArmed:false,counting:false};
+    state.screen='handoff'; render();
+  }
+  function go(){
+    const g=state.game; if(g.counting) return;
+    g.counting=true;
+    const cd=document.getElementById('countdown'); const span=cd.querySelector('span');
+    cd.hidden=false; let n=3; span.textContent=n; span.classList.add('pop');
+    const iv=setInterval(()=>{
+      n--;
+      if(n<=0){ clearInterval(iv); g.counting=false; beginTurn(); return; }
+      span.textContent=n; span.classList.remove('pop'); void span.offsetWidth; span.classList.add('pop');
+    },1000);
+  }
+  let wakeLock=null;
+  function beginTurn(){
+    const g=state.game;
+    g.qIndex=0; g.wrong=0; g.penaltyMs=0; g.input=''; g.abortArmed=false; g.turnStart=Date.now();
+    state.screen='play'; render();
+    try{ if(navigator.wakeLock&&navigator.wakeLock.request){ navigator.wakeLock.request('screen').then(l=>{wakeLock=l;}).catch(()=>{}); } }catch(e){}
+  }
+  function releaseWake(){ try{ if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; } }catch(e){} }
+  function endTurn(){
+    const g=state.game; const raw=Date.now()-g.turnStart;
+    g.results.push({name:playerName(g.current),raw:raw,wrong:g.wrong,penaltyMs:g.penaltyMs,total:raw+g.penaltyMs});
+    g.turnStart=null; g.current++;
+    releaseWake();
+    state.screen=g.current<state.settings.players.length?'handoff':'results';
+    render();
+  }
+  function pressKey(k){
+    const g=state.game; if(!g||state.screen!=='play') return;
+    if(k==='del') g.input=g.input.slice(0,-1);
+    else if(k==='neg') g.input=g.input.startsWith('-')?g.input.slice(1):'-'+g.input;
+    else if(g.input.replace('-','').length<7) g.input+=k;
+    updateInput();
+  }
+  let fbTimer=null;
+  function flash(kind,text){
+    const card=document.getElementById('pcard'); const fb=document.getElementById('fb'); if(!card||!fb) return;
+    card.classList.remove('ok','bad'); void card.offsetWidth; card.classList.add(kind);
+    fb.textContent=text; fb.className='feedback show '+kind;
+    clearTimeout(fbTimer); fbTimer=setTimeout(()=>{ fb.className='feedback'; card.classList.remove('ok','bad'); },kind==='ok'?350:900);
+  }
+  function submit(){
+    const g=state.game; if(!g||state.screen!=='play') return;
+    if(g.input===''||g.input==='-') return;
+    const p=g.problems[g.qIndex];
+    if(Number(g.input)===p.answer){
+      g.qIndex++; g.input='';
+      if(g.qIndex>=g.problems.length){ endTurn(); return; }
+      flash('ok','정답'); updateProblem(); updateInput();
+    }else{
+      g.wrong++; const pen=state.settings.penalty*1000; g.penaltyMs+=pen; g.input='';
+      flash('bad',pen?'틀렸어요 · +'+state.settings.penalty+'초':'틀렸어요 · 다시'); updateInput();
+    }
+  }
+  function updateProblem(){
+    const g=state.game; const p=g.problems[g.qIndex]; if(!p) return;
+    const el=document.getElementById('problem'); if(el) el.textContent=p.text;
+    const q=document.getElementById('qnum'); if(q) q.textContent=g.qIndex+1;
+    const bar=document.getElementById('pbar'); if(bar) bar.style.width=(g.qIndex/g.problems.length*100)+'%';
+  }
+  function updateInput(){ const v=document.getElementById('val'); if(v) v.textContent=state.game.input; }
+  let raf=null;
+  function tick(){
+    const g=state.game; const el=document.getElementById('timer');
+    if(el&&g&&g.turnStart) el.textContent=fmt(Date.now()-g.turnStart+g.penaltyMs);
+    raf=requestAnimationFrame(tick);
+  }
+  function startTick(){ if(raf==null) raf=requestAnimationFrame(tick); }
+  function stopTick(){ if(raf!=null){ cancelAnimationFrame(raf); raf=null; } }
+  function abort(){ stopTick(); releaseWake(); state.game=null; state.screen='setup'; render(); }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click',e=>{
+    const el=e.target.closest('[data-action]'); if(!el||el.disabled) return;
+    const a=el.dataset.action; const s=state.settings;
+    switch(a){
+      case 'add-player': if(s.players.length<6){ s.players.push('플레이어 '+(s.players.length+1)); saveSettings(); render(); const inp=document.getElementById('pname-'+(s.players.length-1)); if(inp){ inp.focus(); inp.select(); } } break;
+      case 'remove-player': if(s.players.length>2){ s.players.splice(+el.dataset.i,1); saveSettings(); render(); } break;
+      case 'count': s.count=+el.dataset.v; saveSettings(); render(); break;
+      case 'penalty': s.penalty=+el.dataset.v; saveSettings(); render(); break;
+      case 'preset': { const p=PRESETS[el.dataset.v]; for(const op in p){ s.ops[op].combos=p[op].slice(); s.ops[op].on=p[op].length>0; } state.setupError=''; saveSettings(); render(); break; }
+      case 'combo': { const c=s.ops[el.dataset.op]; const cb=el.dataset.combo; const i=c.combos.indexOf(cb); if(i>=0) c.combos.splice(i,1); else c.combos.push(cb); state.setupError=''; saveSettings(); render(); break; }
+      case 'start': startGame(); break;
+      case 'go': go(); break;
+      case 'key': pressKey(el.dataset.k); break;
+      case 'submit': submit(); break;
+      case 'abort-confirm':
+        if(state.screen==='handoff'){ abort(); break; }
+        if(state.game.abortArmed){ abort(); } else { state.game.abortArmed=true; el.classList.add('danger'); el.textContent='정말 그만둘까요? 다시 누르면 설정으로 돌아갑니다'; }
+        break;
+      case 'rematch': { const g=state.game; state.game={problems:genProblems(s),results:[],current:0,qIndex:0,wrong:0,penaltyMs:0,turnStart:null,input:'',abortArmed:false,counting:false}; state.screen='handoff'; render(); break; }
+      case 'setup': state.game=null; state.screen='setup'; render(); break;
+    }
+  });
+  document.addEventListener('change',e=>{
+    const t=e.target;
+    if(t.classList.contains('switch')){ state.settings.ops[t.dataset.op].on=t.checked; state.setupError=''; saveSettings(); render(); }
+    else if(t.dataset.opt){ state.settings.ops[t.dataset.op][t.dataset.opt]=t.checked; saveSettings(); }
+  });
+  document.addEventListener('input',e=>{
+    const t=e.target;
+    if(t.classList.contains('name')){ state.settings.players[+t.dataset.i]=t.value; saveSettings(); }
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    if(state.screen==='play'){
+      if(/^[0-9]$/.test(e.key)){ pressKey(e.key); e.preventDefault(); }
+      else if(e.key==='Backspace'){ pressKey('del'); e.preventDefault(); }
+      else if(e.key==='Enter'){ submit(); e.preventDefault(); }
+      else if(e.key==='-'){ pressKey('neg'); e.preventDefault(); }
+    }else if(state.screen==='handoff'&&(e.key==='Enter'||e.key===' ')){
+      if(e.target.tagName!=='BUTTON'){ go(); e.preventDefault(); }
+    }
+  });
+
+  /* ---------- boot (keeps a game alive across republishes) ---------- */
+  function start(data){
+    if(data&&data.state&&data.state.settings){ state=data.state; if(state.game) state.game.counting=false; }
+    render();
+  }
+  try{ window.claude&&window.claude.hot&&window.claude.hot.snapshot&&window.claude.hot.snapshot(()=>({state:state})); }catch(e){}
+  if(window.claude&&window.claude.hot&&window.claude.hot.ready){ window.claude.hot.ready(start); }
+  else { start((window.claude&&window.claude.hot&&window.claude.hot.data)||{}); }
+})();
+</script>
+
+</body>
+</html>
